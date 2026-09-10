@@ -1,0 +1,5 @@
+"0","penguins %>%"
+"0","  ggplot(mapping = aes(x=bill_length_mm, fill=species)) +"
+"0","  geom_histogram() +"
+"0","  facet_wrap(~species, nrow=3) +"
+"0","  theme_bw()"

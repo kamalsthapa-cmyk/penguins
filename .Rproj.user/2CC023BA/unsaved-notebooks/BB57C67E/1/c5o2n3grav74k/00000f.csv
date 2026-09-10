@@ -1,0 +1,5 @@
+"0","ggplot(data=penguins,mapping= aes(x=body_mass_g, y=flipper_length_mm, color=species)) +"
+"0","  geom_point()+"
+"0","  geom_smooth(method=""lm"")+"
+"0","  facet_wrap(~island)+"
+"0","  theme_minimal()"

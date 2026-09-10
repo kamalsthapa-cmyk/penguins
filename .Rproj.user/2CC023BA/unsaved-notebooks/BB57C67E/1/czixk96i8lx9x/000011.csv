@@ -1,0 +1,331 @@
+"0","data.frame"
+"1","function (..., row.names = NULL, check.rows = FALSE, check.names = TRUE, 
+"
+"1","    fix.empty.names = TRUE, stringsAsFactors = FALSE) 
+"
+"1","{
+"
+"1","    data.row.names <- if (check.rows && is.null(row.names)) 
+"
+"1","        function(current, new, i) {
+"
+"1","            if (is.character(current)) 
+"
+"1","                new <- as.character(new)
+"
+"1","            if (is.character(new)) 
+"
+"1","                current <- as.character(current)
+"
+"1","            if (anyDuplicated(new)) 
+"
+"1","                return(current)
+"
+"1","            if (is.null(current)) 
+"
+"1","                return(new)
+"
+"1","            if (all(current == new) || all(current == """")) 
+"
+"1","                return(new)
+"
+"1","            stop(gettextf(""mismatch of row names in arguments of 'data.frame', item %d"", 
+"
+"1","                i), domain = NA)
+"
+"1","        }
+"
+"1","    else function(current, new, i) {
+"
+"1","        current %||% if (anyDuplicated(new)) {
+"
+"1","            warning(gettextf(""some row.names duplicated: %s --> row.names NOT used"", 
+"
+"1","                paste(which(duplicated(new)), collapse = "","")), 
+"
+"1","                domain = NA)
+"
+"1","            current
+"
+"1","        }
+"
+"1","        else new
+"
+"1","    }
+"
+"1","    object <- as.list(substitute(list(...)))[-1L]
+"
+"1","    mirn <- missing(row.names)
+"
+"1","    mrn <- is.null(row.names)
+"
+"1","    x <- list(...)
+"
+"1","    n <- length(x)
+"
+"1","    if (n < 1L) {
+"
+"1","        if (!mrn) {
+"
+"1","            if (is.object(row.names) || !is.integer(row.names)) 
+"
+"1","                row.names <- as.character(row.names)
+"
+"1","            if (anyNA(row.names)) 
+"
+"1","                stop(""row names contain missing values"")
+"
+"1","            if (anyDuplicated(row.names)) 
+"
+"1","                stop(gettextf(""duplicate row.names: %s"", paste(unique(row.names[duplicated(row.names)]), 
+"
+"1","                  collapse = "", "")), domain = NA)
+"
+"1","        }
+"
+"1","        else row.names <- integer()
+"
+"1","        return(structure(list(), names = character(), row.names = row.names, 
+"
+"1","            class = ""data.frame""))
+"
+"1","    }
+"
+"1","    vnames <- names(x)
+"
+"1","    if (length(vnames) != n) 
+"
+"1","        vnames <- character(n)
+"
+"1","    no.vn <- !nzchar(vnames)
+"
+"1","    vlist <- vnames <- as.list(vnames)
+"
+"1","    nrows <- ncols <- integer(n)
+"
+"1","    for (i in seq_len(n)) {
+"
+"1","        xi <- if (is.character(x[[i]]) || is.list(x[[i]])) 
+"
+"1","            as.data.frame(x[[i]], optional = TRUE, stringsAsFactors = stringsAsFactors)
+"
+"1","        else as.data.frame(x[[i]], optional = TRUE)
+"
+"1","        nrows[i] <- .row_names_info(xi)
+"
+"1","        ncols[i] <- length(xi)
+"
+"1","        namesi <- names(xi)
+"
+"1","        if (ncols[i] > 1L) {
+"
+"1","            if (length(namesi) == 0L) 
+"
+"1","                namesi <- seq_len(ncols[i])
+"
+"1","            vnames[[i]] <- if (no.vn[i]) 
+"
+"1","                namesi
+"
+"1","            else paste(vnames[[i]], namesi, sep = ""."")
+"
+"1","        }
+"
+"1","        else if (length(namesi)) {
+"
+"1","            vnames[[i]] <- namesi
+"
+"1","        }
+"
+"1","        else if (fix.empty.names && no.vn[[i]]) {
+"
+"1","            tmpname <- deparse(object[[i]], nlines = 1L)[1L]
+"
+"1","            if (startsWith(tmpname, ""I("") && endsWith(tmpname, 
+"
+"1","                "")"")) {
+"
+"1","                ntmpn <- nchar(tmpname, ""c"")
+"
+"1","                tmpname <- substr(tmpname, 3L, ntmpn - 1L)
+"
+"1","            }
+"
+"1","            vnames[[i]] <- tmpname
+"
+"1","        }
+"
+"1","        if (mirn && nrows[i] > 0L) {
+"
+"1","            rowsi <- attr(xi, ""row.names"")
+"
+"1","            if (any(nzchar(rowsi))) 
+"
+"1","                row.names <- data.row.names(row.names, rowsi, 
+"
+"1","                  i)
+"
+"1","        }
+"
+"1","        nrows[i] <- abs(nrows[i])
+"
+"1","        vlist[[i]] <- xi
+"
+"1","    }
+"
+"1","    nr <- max(nrows)
+"
+"1","    for (i in seq_len(n)[nrows < nr]) {
+"
+"1","        xi <- vlist[[i]]
+"
+"1","        if (nrows[i] > 0L && (nr%%nrows[i] == 0L)) {
+"
+"1","            xi <- unclass(xi)
+"
+"1","            fixed <- TRUE
+"
+"1","            for (j in seq_along(xi)) {
+"
+"1","                xi1 <- xi[[j]]
+"
+"1","                if (is.vector(xi1) || is.factor(xi1)) 
+"
+"1","                  xi[[j]] <- rep(xi1, length.out = nr)
+"
+"1","                else if (is.character(xi1) && inherits(xi1, ""AsIs"")) 
+"
+"1","                  xi[[j]] <- structure(rep(xi1, length.out = nr), 
+"
+"1","                    class = class(xi1))
+"
+"1","                else if (inherits(xi1, ""Date"") || inherits(xi1, 
+"
+"1","                  ""POSIXct"")) 
+"
+"1","                  xi[[j]] <- rep(xi1, length.out = nr)
+"
+"1","                else {
+"
+"1","                  fixed <- FALSE
+"
+"1","                  break
+"
+"1","                }
+"
+"1","            }
+"
+"1","            if (fixed) {
+"
+"1","                vlist[[i]] <- xi
+"
+"1","                next
+"
+"1","            }
+"
+"1","        }
+"
+"1","        stop(gettextf(""arguments imply differing number of rows: %s"", 
+"
+"1","            paste(unique(nrows), collapse = "", "")), domain = NA)
+"
+"1","    }
+"
+"1","    value <- unlist(vlist, recursive = FALSE, use.names = FALSE)
+"
+"1","    vnames <- as.character(unlist(vnames[ncols > 0L]))
+"
+"1","    if (fix.empty.names && any(noname <- !nzchar(vnames))) 
+"
+"1","        vnames[noname] <- paste0(""Var."", seq_along(vnames))[noname]
+"
+"1","    if (check.names) {
+"
+"1","        if (fix.empty.names) 
+"
+"1","            vnames <- make.names(vnames, unique = TRUE)
+"
+"1","        else {
+"
+"1","            nz <- nzchar(vnames)
+"
+"1","            vnames[nz] <- make.names(vnames[nz], unique = TRUE)
+"
+"1","        }
+"
+"1","    }
+"
+"1","    names(value) <- vnames
+"
+"1","    if (!mrn) {
+"
+"1","        if (length(row.names) == 1L && nr != 1L) {
+"
+"1","            if (is.character(row.names)) 
+"
+"1","                row.names <- match(row.names, vnames, 0L)
+"
+"1","            if (length(row.names) != 1L || row.names < 1L || 
+"
+"1","                row.names > length(vnames)) 
+"
+"1","                stop(""'row.names' should specify one of the variables"")
+"
+"1","            i <- row.names
+"
+"1","            row.names <- value[[i]]
+"
+"1","            value <- value[-i]
+"
+"1","        }
+"
+"1","        else if (!is.null(row.names) && length(row.names) != 
+"
+"1","            nr) 
+"
+"1","            stop(""row names supplied are of the wrong length"")
+"
+"1","    }
+"
+"1","    else if (!is.null(row.names) && length(row.names) != nr) {
+"
+"1","        warning(""row names were found from a short variable and have been discarded"")
+"
+"1","        row.names <- NULL
+"
+"1","    }
+"
+"1","    class(value) <- ""data.frame""
+"
+"1","    if (is.null(row.names)) 
+"
+"1","        attr(value, ""row.names"") <- .set_row_names(nr)
+"
+"1","    else {
+"
+"1","        if (is.object(row.names) || !is.integer(row.names)) 
+"
+"1","            row.names <- as.character(row.names)
+"
+"1","        if (anyNA(row.names)) 
+"
+"1","            stop(""row names contain missing values"")
+"
+"1","        if (anyDuplicated(row.names)) 
+"
+"1","            stop(gettextf(""duplicate row.names: %s"", paste(unique(row.names[duplicated(row.names)]), 
+"
+"1","                collapse = "", "")), domain = NA)
+"
+"1","        row.names(value) <- row.names
+"
+"1","    }
+"
+"1","    value
+"
+"1","}
+"
+"1","<bytecode: 0x7fbb72779838>
+"
+"1","<environment: namespace:base>
+"
